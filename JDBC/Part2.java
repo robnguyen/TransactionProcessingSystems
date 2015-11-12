@@ -1,18 +1,5 @@
-/*This is a sample JDBC program. In order to run it,
- *    You need to do the following. 
- *
- *    1. edit this file with correct oracle username and password
- *    2. javac JDBCselect.java
- *    3. java JDBCselect
- *
- *    JDBC connected.
- *
- *    If you don't have this table in your database, you will
- *    get error message displayed. 
- *    */
-
 /*
- * Part 2: JDBC program as a client program to do Bank 
+ * Part 2: JDBC program as a client program to do Bank Transactions 
  * */
 
 import java.sql.*;

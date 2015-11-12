@@ -88,10 +88,18 @@ public class Part2
           closeAccount(customerName, branch);
         }
         else if (option.equals("6") || option.toUpperCase().equals("WITHDRAW")){
-          withdraw();
+          System.out.println("---------------------------------------------------------"); 
+          String customerName = console.readLine("Enter customer name: ");
+          String accountNo = console.readLine("Enter account number (XXX XXXX): " );
+          String withdrawAmt = console.readLine("Enter withdraw amount: " );
+          withdraw(customerName, accountNo, withdrawAmt);
         }	
         else if (option.equals("7") || option.toUpperCase().equals("DEPOSIT")){
-          deposit();
+          System.out.println("---------------------------------------------------------"); 
+          String customerName = console.readLine("Enter customer name: ");
+          String accountNo = console.readLine("Enter account number (XXX XXXX): " );
+          String depositAmt = console.readLine("Enter deposit amount: " );
+          deposit(customerName, accountNo, depositAmt);
         }
         else if (option.equals("8") || option.toUpperCase().equals("TRANSFER")){
           transfer();
@@ -395,8 +403,8 @@ public class Part2
       //Insert the customer at with the highest customer number, name, and status
       int maxCustomerNo = 0;
       pStmt = conn.prepareStatement("select max(customerNo) as max_customer_no from customer",
-                                     ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                     ResultSet.CONCUR_READ_ONLY);
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
 
       rs = pStmt.executeQuery();
       if (rs.first()){
@@ -407,8 +415,8 @@ public class Part2
       pStmt.close();
 
       pStmt = conn.prepareStatement("select customerNo, name, status from customer",
-                                     ResultSet.TYPE_SCROLL_INSENSITIVE, 
-                                     ResultSet.CONCUR_UPDATABLE);
+          ResultSet.TYPE_SCROLL_INSENSITIVE, 
+          ResultSet.CONCUR_UPDATABLE);
       rs = pStmt.executeQuery();
       rs.moveToInsertRow();
       rs.updateString("customerNo", String.format("%05d",maxCustomerNo));
@@ -495,8 +503,8 @@ public class Part2
 
       // Check passed in customer name if she exists
       pStmt = conn.prepareStatement("Select customerNo, name from customer where name = ?",
-                                     ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                     ResultSet.CONCUR_READ_ONLY); 
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY); 
 
       pStmt.setString(1,customerName);
 
@@ -511,31 +519,31 @@ public class Part2
 
       rs.close();
       pStmt.close();
-      
+
       pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance from account where branchNo = ? and customerNo = ?",
           ResultSet.TYPE_SCROLL_INSENSITIVE, 
           ResultSet.CONCUR_UPDATABLE);
-      
+
       pStmt.setString(1,String.format("%03d",branchNum));
       pStmt.setString(2,String.format("%05d",customerNum));
 
       rs = pStmt.executeQuery();
-      
+
       //Check if result set is empty
       if(!rs.isBeforeFirst()){
-         System.out.println("There are no accounts associated with this customer at this branch, did not close any accounts");
-         return; 
+        System.out.println("There are no accounts associated with this customer at this branch, did not close any accounts");
+        return; 
       }
       Boolean isDelete = false; 
       //For each result row, if the balance is 0, then delete it
       while (rs.next()){
         if(rs.getFloat("balance") == 0){
           System.out.println("Closing account at branch#"   + 
-                              rs.getString("branchNo")      + 
-                              " with local account number#" + 
-                              rs.getString("localAccNo")    + 
-                              " under customer "            + 
-                              customerName);  
+              rs.getString("branchNo")      + 
+              " with local account number#" + 
+              rs.getString("localAccNo")    + 
+              " under customer "            + 
+              customerName);  
           rs.deleteRow();
           isDelete = true;
         }
@@ -549,27 +557,30 @@ public class Part2
         return;
       }
 
+      //Updating customer status after removing a branch
+      updateCustomerStatus(String.format("%05d",customerNum));
+
       //Closing the associated branch if it has no more accounts
       pStmt = conn.prepareStatement("select count(*) as total from account where branchNo = ?",
-                                      ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                      ResultSet.CONCUR_READ_ONLY); 
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY); 
       pStmt.setString(1,String.format("%03d",branchNum));
       rs = pStmt.executeQuery();
       rs.first();
       int numAssocAcc = rs.getInt("total");
-     
+
       //If total of associated accounts is 0, close the branch 
       if(numAssocAcc == 0){
         closeBranch(branch);
       }
-      
+
       rs.close();
       pStmt.close(); 
 
       //deleting the associated customer if she has no more accounts
       pStmt = conn.prepareStatement("select count(*) as total from account where customerNo = ?",
-                                     ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                     ResultSet.CONCUR_READ_ONLY);
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
       pStmt.setString(1,String.format("%05d",customerNum));
       rs = pStmt.executeQuery();
       rs.first();
@@ -579,8 +590,8 @@ public class Part2
       pStmt.close();
       if (numAssocAcc == 0){
         pStmt = conn.prepareStatement("delete from customer where customerNo = ?",
-                                       ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                       ResultSet.CONCUR_UPDATABLE);
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE);
 
         pStmt.setString(1,String.format("%05d",customerNum));
         pStmt.executeUpdate();
@@ -608,30 +619,200 @@ public class Part2
       }
     }
   }
-  public static void withdraw(){
-    System.out.println("I'm in withdraw");
+  public static void withdraw(String custName, String accNo, String withdrawAmt){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
     try{
-      Statement stmt = conn.createStatement();
+      int customerNum = 0;
+      //Parsing the accNo in format XXX XXXX
+      String[] account = accNo.split("\\s+");
+      int branchNum = 0;
+      int localAccNum = 0;
+      float amtToWithdraw = Float.parseFloat(withdrawAmt);
+      //Checking correct acount number format
+      if (account.length != 2){
+        System.out.println("Error - please enter a valid account number (XXX XXXX)");
+        return;
+      }
+      if (account[0].length() != 3 || account[1].length() != 4){
+        System.out.println("Error - please enter a valid account number (XXX XXXX)");
+        return;
+      }
+      branchNum = Integer.parseInt(account[0]);
+      localAccNum  = Integer.parseInt(account[1]);
 
-      stmt.close();
+
+      //Get the customer number (assuming customer name is unique);
+      pStmt = conn.prepareStatement("select customerNo from customer where name = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
+      pStmt.setString(1,custName);
+      rs = pStmt.executeQuery();
+      if (!rs.first()){
+        System.out.println("Error - Customer with the given name was not found, cancelling withdraw");
+        return;
+      }
+
+      rs.first();
+      customerNum = Integer.parseInt(rs.getString("customerNo"));
+
+      rs.close();
+      pStmt.close();
+
+      pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance" +  
+          " from account " + 
+          " where customerNo = ? and branchNo = ? and localAccNo = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE);
+
+      pStmt.setString(1,String.format("%05d",customerNum));
+      pStmt.setString(2,String.format("%03d",branchNum));
+      pStmt.setString(3,String.format("%04d",localAccNum));
+
+      rs = pStmt.executeQuery();
+      if(rs.first()){
+        if(rs.getFloat("balance") >= amtToWithdraw){
+          rs.updateFloat("balance", rs.getFloat("balance") - amtToWithdraw);
+          rs.updateRow();  
+          System.out.println("Account number " +
+              String.format("%03d",branchNum) +
+              " " +
+              String.format("%04d",localAccNum) +
+              " was withdrawn the amount of " +
+              String.format("%.2f",amtToWithdraw)+
+              ". Balance left is "
+              + rs.getFloat("balance"));
+
+        }
+        else{
+          System.out.println("Error - balance is less than the withdraw amount specified, cannot withdraw");
+          return; 
+        }
+      }
+      else{
+        System.out.println("Error - could not find an account at this branch with this customer, cancelling withdraw");
+        return;
+      }
+
+      updateCustomerStatus(String.format("%05d",customerNum));
+      conn.commit();
+
+    }
+    catch(NumberFormatException e){
+      System.out.println("Error - Entered account number is not valid, please enter a valid account number(XXX XXXX)");
+      return;
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
       e.printStackTrace();
       System.exit(-1);
+    }
+    finally{
+      try{
+        if (rs != null){
+          rs.close();
+        }
+        if (pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch (SQLException e){
+        e.printStackTrace();
+      }
     }
   }
-  public static void deposit(){
-    System.out.println("I'm in deposit");
+  public static void deposit(String custName, String accNo, String depositAmount){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
     try{
-      Statement stmt = conn.createStatement();
+      int customerNum = 0;
+      //Parsing the accNo in format XXX XXXX
+      String[] account = accNo.split("\\s+");
+      int branchNum = 0;
+      int localAccNum = 0;
+      float amtToDeposit = Float.parseFloat(depositAmount);
+      //Checking correct acount number format
+      if (account.length != 2){
+        System.out.println("Error - please enter a valid account number (XXX XXXX)");
+        return;
+      }
+      if (account[0].length() != 3 || account[1].length() != 4){
+        System.out.println("Error - please enter a valid account number (XXX XXXX)");
+        return;
+      }
+      branchNum = Integer.parseInt(account[0]);
+      localAccNum  = Integer.parseInt(account[1]);
 
-      stmt.close();
+      //Get the customer number (assuming customer name is unique);
+      pStmt = conn.prepareStatement("select customerNo from customer where name = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
+      pStmt.setString(1,custName);
+      rs = pStmt.executeQuery();
+      if (!rs.first()){
+        System.out.println("Error - Customer with the given name was not found, cancelling withdraw");
+        return;
+      }
+
+      rs.first();
+      customerNum = Integer.parseInt(rs.getString("customerNo"));
+
+      rs.close();
+      pStmt.close();
+
+      pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance" +  
+          " from account " + 
+          " where customerNo = ? and branchNo = ? and localAccNo = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE);
+
+      pStmt.setString(1,String.format("%05d",customerNum));
+      pStmt.setString(2,String.format("%03d",branchNum));
+      pStmt.setString(3,String.format("%04d",localAccNum));
+
+      rs = pStmt.executeQuery();
+      if(rs.first()){
+        rs.updateFloat("balance", rs.getFloat("balance") + amtToDeposit);
+        rs.updateRow();  
+        System.out.println("Account number " +
+            String.format("%03d",branchNum) +
+            " " +
+            String.format("%04d",localAccNum) +
+            " was deposited the amount of " +
+            String.format("%.2f", amtToDeposit)+
+            ". Balance left is "
+            + rs.getFloat("balance"));
+
+      }
+      else{
+        System.out.println("Error - could not find an account at this branch with this customer, cancelling withdraw");
+        return;
+      }
+
+      updateCustomerStatus(String.format("%05d",customerNum));
+      conn.commit();
+    }
+    catch(NumberFormatException e){
+      System.out.println("Error - Entered account number is not valid, please enter a valid account number(XXX XXXX)");
+      return;
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
       e.printStackTrace();
       System.exit(-1);
+    }
+    finally{
+      try{
+        if (rs != null){
+          rs.close();
+        }
+        if (pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch (SQLException e){
+        e.printStackTrace();
+      }
     }
   }
   public static void transfer(){
@@ -716,23 +897,25 @@ public class Part2
           ResultSet.CONCUR_UPDATABLE);
       pStmt.setString(2,customerNo);
 
+      int status = 0;
       //If balance is 0 then status is 0
       if (totalBalance == 0){
-        pStmt.setInt(1,0);
+        status = 0; 
       }
       //If total balance is < 1000 then status is 1
       else if (totalBalance < 1000){
-        pStmt.setInt(1,1);
+        status = 1;
       }
       //If total balance is < 2000 then status is 2
       else if (totalBalance < 2000){
-        pStmt.setInt(1,2);
+        status = 2;
       }
       //Otherwise total balance is 3
       else{
-        pStmt.setInt(1,3);
+        status = 3;
       }
 
+      pStmt.setInt(1,status);
       pStmt.executeUpdate();
 
       conn.commit();   

@@ -110,7 +110,9 @@ public class Part2
           transfer(customerName, sourceAccountNo, sinkAccountNo, amount);
         }
         else if (option.equals("9") || option.toUpperCase().equals("SHOW BRANCH")){
-          showBranch();
+          System.out.println("---------------------------------------------------------"); 
+          String branch = console.readLine("Enter branch number or address: ");
+          showBranch(branch);
         }
         else if (option.equals("10") || option.toUpperCase().equals("SHOW ALL BRANCHES")){
           showAllBranches();
@@ -127,9 +129,6 @@ public class Part2
         }
 
       }
-
-
-      //			stmt.close();
       conn.close();
     } 
     catch(Exception e)
@@ -169,7 +168,7 @@ public class Part2
       rs.close();
     }
     catch(SQLIntegrityConstraintViolationException e){
-      System.out.println("Entered branch address already exists, cannot add a new branch");
+      System.out.println("Entered branch address is invalid or already exists. cannot add a new branch");
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
@@ -247,11 +246,20 @@ public class Part2
       }
     }
   }
-  public static void setupAccount(String customerName, String branch, String initialAmount){
+
+  /* Function setupAccount
+   * Description: sets up an account, given the customer, the branch (address or branch number), and an initial amount
+   * @param customerName: the customer name (String)
+   * @param branch : the branch number or the branch address (String)
+   * @param initialAmount : the initial amount to set up an account with (Float), must be greater than or equal to 0
+   * return: Boolean -> True if account has been successfully set up, false if there was any case of inconsistency
+   */
+  public static Boolean setupAccount(String customerName, String branch, String initialAmount){
     PreparedStatement pStmt = null; //This is used to check if branch and customer exists in the database before inserting an account
     ResultSet rs = null;
     String branchNum = null;
     String customerNum = null;
+    Boolean isValid = false;
     float initAmt = 0.0f; 
     try{
       /*---------- Check if branch is open (in the database) ----------- */ 
@@ -266,7 +274,7 @@ public class Part2
         //Check if 
         if(!rs.first()){
           System.out.println("Specified branch by branchNumber does not exist");  
-          return;
+          return false;
         }
         branchNum = String.format("%03d",branchNo);
       }
@@ -277,7 +285,7 @@ public class Part2
         rs = pStmt.executeQuery();
         if(!rs.first()){
           System.out.println("Specified branch by address does not exist");  
-          return;
+          return false;
         }
         rs.first();
         branchNum = rs.getString("branchNo");
@@ -304,7 +312,7 @@ public class Part2
       rs = pStmt.executeQuery();
       if(!rs.first()){
         System.out.println("The customer name " + customerName + " is not found in the customer table. Please enter an existing customer");
-        return;
+        return false;
       }
 
       rs.first();
@@ -317,7 +325,7 @@ public class Part2
       try{
         if (Float.parseFloat(initialAmount) < 0){
           System.out.println("Initial amount given is less than 0, cannot make account");
-          return;
+          return false;
         }
         initAmt = Float.parseFloat(initialAmount);
       }
@@ -363,8 +371,7 @@ public class Part2
 
       rs.close();
 
-
-
+      isValid = true;
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
@@ -383,6 +390,7 @@ public class Part2
       catch (SQLException e){
         e.printStackTrace();
       }
+      return isValid;
     }
   }
   public static void setupCustomer(String customerName, String branch){
@@ -432,8 +440,14 @@ public class Part2
       rs.close();
       pStmt.close();
       //Set up an account for the customer  
-      setupAccount(customerName,branch,String.valueOf(0));
+      Boolean isValid = setupAccount(customerName,branch,String.valueOf(0));
 
+      //If we can't set up an account, we know for sure that the branch is not valid, rollback changes
+      if (!isValid){
+        System.out.println("Specified branch was not valid. Cannot set up customer's account. No customer was set up");
+        conn.rollback();
+        return;
+      }
       conn.commit();
 
 
@@ -506,24 +520,14 @@ public class Part2
         }
       }
 
-      // Check passed in customer name if she exists
-      pStmt = conn.prepareStatement("Select customerNo, name from customer where name = ?",
-          ResultSet.TYPE_SCROLL_INSENSITIVE,
-          ResultSet.CONCUR_READ_ONLY); 
-
-      pStmt.setString(1,customerName);
-
-      rs = pStmt.executeQuery();
-      if(!rs.first()){
-        System.out.println("The customer name " + customerName + " is not found in the customer table. Please enter an existing customer");
+      //Query customer table for the customer number
+      try{
+        customerNum = Integer.parseInt(getCustomerNoFromName(customerName));
+      }
+      catch(NumberFormatException e){
+        System.out.println("The customer name " + customerName + " is not found. Please enter an existing customer");
         return;
       }
-
-      rs.first();
-      customerNum = Integer.parseInt(rs.getString("customerNo"));
-
-      rs.close();
-      pStmt.close();
 
       pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance from account where branchNo = ? and customerNo = ?",
           ResultSet.TYPE_SCROLL_INSENSITIVE, 
@@ -646,23 +650,15 @@ public class Part2
       branchNum = Integer.parseInt(account[0]);
       localAccNum  = Integer.parseInt(account[1]);
 
-
-      //Get the customer number (assuming customer name is unique);
-      pStmt = conn.prepareStatement("select customerNo from customer where name = ?",
-          ResultSet.TYPE_SCROLL_INSENSITIVE,
-          ResultSet.CONCUR_READ_ONLY);
-      pStmt.setString(1,custName);
-      rs = pStmt.executeQuery();
-      if (!rs.first()){
-        System.out.println("Error - Customer with the given name was not found, cancelling withdraw");
+      //Query customer table for the customer number
+      try{
+        customerNum = Integer.parseInt(getCustomerNoFromName(custName));
+      }
+      catch(NumberFormatException e){
+        System.out.println("The customer name " + custName + " is not found. Please enter an existing customer");
         return;
       }
 
-      rs.first();
-      customerNum = Integer.parseInt(rs.getString("customerNo"));
-
-      rs.close();
-      pStmt.close();
 
       pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance" +  
           " from account " + 
@@ -748,22 +744,14 @@ public class Part2
       branchNum = Integer.parseInt(account[0]);
       localAccNum  = Integer.parseInt(account[1]);
 
-      //Get the customer number (assuming customer name is unique);
-      pStmt = conn.prepareStatement("select customerNo from customer where name = ?",
-          ResultSet.TYPE_SCROLL_INSENSITIVE,
-          ResultSet.CONCUR_READ_ONLY);
-      pStmt.setString(1,custName);
-      rs = pStmt.executeQuery();
-      if (!rs.first()){
-        System.out.println("Error - Customer with the given name was not found, cancelling withdraw");
+      //Query customer table for the customer number
+      try{
+        customerNum = Integer.parseInt(getCustomerNoFromName(custName));
+      }
+      catch(NumberFormatException e){
+        System.out.println("The customer name " + custName + " is not found. Please enter an existing customer");
         return;
       }
-
-      rs.first();
-      customerNum = Integer.parseInt(rs.getString("customerNo"));
-
-      rs.close();
-      pStmt.close();
 
       pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance" +  
           " from account " + 
@@ -874,7 +862,7 @@ public class Part2
         customerNum = Integer.parseInt(getCustomerNoFromName(customerName));
       }
       catch(NumberFormatException e){
-        System.out.println("Given customer does not match any in the database. No transfer was done");
+        System.out.println("The customer name " + customerName + " is not found. Please enter an existing customer");
         return;
       }
 
@@ -972,17 +960,29 @@ public class Part2
       }
     }
   }
-  public static void showBranch(){
-    System.out.println("I'm in show branch");
+  public static void showBranch(String branch){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
     try{
-      Statement stmt = conn.createStatement();
 
-      stmt.close();
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
       e.printStackTrace();
       System.exit(-1);
+    }
+    finally{
+      try{
+        if (rs != null){
+          rs.close();
+        }
+        if (pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch (SQLException e){
+        e.printStackTrace();
+      }
     }
   }
   public static void showAllBranches(){

@@ -1,0 +1,96 @@
+Script started on Mon 12 Oct 2015 11:18:43 AM UTC
+]0;fedora@COMP4003:~/A3[?1034h[fedora@COMP4003 A3]$ sqlplus
+
+SQL*Plus: Release 11.2.0.2.0 Production on Mon Oct 12 11:18:46 2015
+
+Copyright (c) 1982, 2011, Oracle.  All rights reserved.
+
+Enter user-name: oracle
+Enter password: 
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+Enter user-name: oracle11g
+Enter password: 
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+Enter user-name: oracle
+Enter password: 
+
+Connected to:
+Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+
+SQL> @p2-students.sql
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+
+Package created.
+
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+
+Package body created.
+
+SQL> @p2-courses.sql
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+
+Package created.
+
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+SP2-0310: unable to open file "param.sql"
+
+Package body created.
+
+SQL> exit
+Disconnected from Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+]0;fedora@COMP4003:~/A3[fedora@COMP4003 A3]$ exit
+
+Script done on Mon 12 Oct 2015 11:19:31 AM UTC

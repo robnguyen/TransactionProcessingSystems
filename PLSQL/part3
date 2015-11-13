@@ -1,0 +1,209 @@
+Script started on Mon 12 Oct 2015 11:19:52 AM UTC
+]0;fedora@COMP4003:~/A3[?1034h[fedora@COMP4003 A3]$ sqlplus
+
+SQL*Plus: Release 11.2.0.2.0 Production on Mon Oct 12 11:19:55 2015
+
+Copyright (c) 1982, 2011, Oracle.  All rights reserved.
+
+Enter user-name: oracle
+Enter password: 
+
+Connected to:
+Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+
+SQL> set serveroutput on size 100000
+SQL> set linesize on    size      10000
+SQL> set pagesize 1 50000
+SQL> @p3-add-stus-crs.sql
+Adding 10 students....
+Student Rob  was added
+Student Greg  was added
+Student Dee  was added
+Student Mac  was added
+Student Cordelia  was added
+Student Nick  was added
+Student Bonnie	was added
+Student Charlie  was added
+Student Dennis	was added
+Student Jack  was added
+Adding 10 courses...
+Course#1 COMP1406 has been added at location  on  at
+Course#2 COMP2401 has been added at location  on  at
+Course#3 COMP3004 has been added at location TB208 on MWF at 3:35-4:25
+Course#4 COMP3005 has been added at location TB308 on TR at 8:35-9:25
+Course#5 COMP3000 has been added at location SA406 on MWF at 1:35-2:25
+Course#6 COMP3308 has been added at location SA516 on TR at 10:35-11:25
+Course#7 COMP4003 has been added at location MK4302 on MWF at 10:35-11:25
+Course#8 BIOL2600 has been added at location TB308 on MWF at 8:35-9:25
+Course#9 COMP2402 has been added at location AZ103 on TR at 3:35-4:25
+Course#10 COMP3007 has been added at location MK4302 on TR at 10:35-11:25
+Enrolling students in courses...
+Student# 1 has been enrolled in Course# 3
+Student# 1 has been enrolled in Course# 4
+Student# 1 has been enrolled in Course# 5
+Student# 1 has been enrolled in Course# 6
+Student# 2 has been enrolled in Course# 3
+Student# 2 has been enrolled in Course# 5
+Student# 3 has been enrolled in Course# 10
+Student# 3 has been enrolled in Course# 9
+Student# 4 has been enrolled in Course# 6
+Student# 4 has been enrolled in Course# 7
+Student# 5 has been enrolled in Course# 8
+Student# 5 has been enrolled in Course# 9
+Student# 6 has been enrolled in Course# 3
+Student# 6 has been enrolled in Course# 4
+Student# 7 has been enrolled in Course# 9
+Student# 7 has been enrolled in Course# 10
+Giving marks for students in some courses...
+Student# 1 was given a mark of 95 at Course# 3
+Student# 1 was given a mark of 75 at Course# 5
+Student# 2 was given a mark of 70 at Course# 3
+Student# 2 was given a mark of 86 at Course# 5
+Student# 3 was given a mark of 76 at Course# 10
+Student# 3 was given a mark of 69 at Course# 9
+Student# 4 was given a mark of 90 at Course# 6
+Student# 5 was given a mark of 79 at Course# 9
+Student# 6 was given a mark of 80 at Course# 3
+Student# 7 was given a mark of 90 at Course# 9
+Student# 7 was given a mark of 79 at Course# 10
+
+PL/SQL procedure successfully completed.
+
+SQL> @p3-tests.sql
+--------------------------------------
+Start testing cases add_student(name):
+--------------------------------------
+1.Adding student with null name
+Student name that was entered was null, cannot add this student
+2.Adding student that isn't in table
+Student Valerie  was added
+3.Adding a student with a name already in table
+Student name already exists in the database
+--------------------------------------
+Start testing cases add_student(name,birthdate):
+--------------------------------------
+1.Adding student with null name, null birthdate
+Student name that was entered was null, cannot add this student
+2.Adding student that isn't in table, with a birthday
+Student Julia  was added
+3.Adding student that is already in table, with a birthday
+Student name already exists in the database
+--------------------------------------
+Start testing cases add_student(name,birthdate,address):
+--------------------------------------
+1.Adding student with null name, null birthdate, null address
+Student name that was entered was null, cannot add this student
+2.Adding student that isn't in table, with a birthday and address
+Student Tyrone	was added
+3.Adding student that is already in table, with a birthday and address
+Student name already exists in the database
+--------------------------------------
+Start testing cases delete_student(name):
+--------------------------------------
+1. Delete a null student
+Student is not in the table, no deletion took place
+2. Delete a student not actually in table
+Student is not in the table, no deletion took place
+3. Delete a student in table
+Student Valerie was deleted
+--------------------------------------
+Start testing cases change_name(s#,name):
+--------------------------------------
+1. Change a name for a null s# student
+The s# given does not match with any in the student table, no update took place
+2. Change a name for a s# not in student table
+The s# given does not match with any in the student table, no update took place
+3. Change a name for a student in the database
+Student 12 name was changed to Nona
+--------------------------------------
+Start testing cases change_address(s#,newaddr):
+--------------------------------------
+1. Change an address for a null s# student
+The s# given does not match with any in the student table, no update took place
+2. Change an address for a s# not in student table
+The s# given does not match with any in the student table, no update took place
+3. Change a name for a student in the database
+Student 12 address was changed to 22 Jump street
+--------------------------------------
+Start testing cases enroll_course(s#,c#):
+--------------------------------------
+1. NULL case test
+Course does not exist
+2. Enroll a student normal case
+Student# 12 has been enrolled in Course# 6
+3. Try to enroll the same student in the same class
+Student has already been enrolled in this course
+4. Enroll the student in a course that would conflict with the previous course enrolled
+One of the student's other courses has a time conflict with this course, not enrolling
+--------------------------------------
+Start testing cases add_course(c#,name):
+--------------------------------------
+1. NULL case test
+Null values for c# or name was given, not creating course
+2. Create a course normal case
+Course#11 BIRD3803 has been added at location  on  at
+3. Create a course with same c#, different course name
+The c# given already exists in the database, no new course was added
+4. Create a course with different c#, same course name
+The name BIRD3803 already exists in the database, no new course was added
+--------------------------------------
+Start testing cases add_course(c#,name,loc,days,time):
+--------------------------------------
+1. NULL case test
+Null values for c# or name was given, not creating course
+2. Create a course normal case
+Course#12 COMP4004 has been added at location TB208 on TR at 3:35-4:25
+3. Create a course but would time/location conflict with previously added course
+There is a time conflict at this location. Another course has already taken this classroom at this time of day
+4. Create a course With an invalid Days (not MWF or TR)
+Days T or Times 3:35-4:25 are invalid, course was not added
+5. Create a course With an invalid times)
+Days TR or Times 2:00-4:25 are invalid, course was not added
+--------------------------------------
+Start testing cases delete_course(name):
+--------------------------------------
+1. NULL case test
+Course	is not in the table, no deletion took place
+2. delete a course that has students enrolled
+Student# 10 has been enrolled in Course# 11
+Course BIRD3803 has students enrolled, cannot delete
+3. delete a course normal (no students enrolled)
+Course COMP4004 was deleted
+--------------------------------------
+Start testing cases change_loc(c#,loc)
+--------------------------------------
+1. NULL case test
+the course# given  does not exist in the database
+2. Change location normal case (no conflicts
+Course#13 COMP4005 has been added at location TB208 on TR at 3:35-4:25
+Course# 13 location changed to TB308
+3. Change location conflict case
+Changing location to AZ103 for course# 13 would cause a conflict with another course, not changing location
+--------------------------------------
+Start testing cases give_mark(s#,c#)
+--------------------------------------
+Student# 10 has been enrolled in Course# 13
+1. NULL case test
+Given student and course enrollment was not found, can't assign a mark
+2. Test for student not enrolled in this course
+Given student and course enrollment was not found, can't assign a mark
+3. Mark is not proper format
+Given mark must be between 0 and 100, or blank (NULL)
+4. Normal test case for giving mark to enrolled student
+Student# 10 was given a mark of 78 at Course# 13
+--------------------------------------
+Deleting all students that were added in this test (that were not already deleted)
+Student Nona was deleted
+Student Tyrone was deleted
+Deleting all courses that were added in this test (that were not already deleted
+Course BIRD3803 was deleted
+Course COMP4004 is not in the table, no deletion took place
+Course COMP4005 was deleted
+
+PL/SQL procedure successfully completed.
+
+SQL> exit
+Disconnected from Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+]0;fedora@COMP4003:~/A3[fedora@COMP4003 A3]$ exit
+
+Script done on Mon 12 Oct 2015 11:20:35 AM UTC

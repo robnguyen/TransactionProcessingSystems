@@ -102,7 +102,12 @@ public class Part2
           deposit(customerName, accountNo, depositAmt);
         }
         else if (option.equals("8") || option.toUpperCase().equals("TRANSFER")){
-          transfer();
+          System.out.println("---------------------------------------------------------"); 
+          String customerName = console.readLine("Enter customer name: ");
+          String sourceAccountNo = console.readLine("Enter account number to withdraw money from (XXX XXXX): " );
+          String sinkAccountNo = console.readLine("Enter account number to transfer the money to (XXX XXXX): " );
+          String amount = console.readLine("Enter amount of money to transfer: " );
+          transfer(customerName, sourceAccountNo, sinkAccountNo, amount);
         }
         else if (option.equals("9") || option.toUpperCase().equals("SHOW BRANCH")){
           showBranch();
@@ -815,17 +820,156 @@ public class Part2
       }
     }
   }
-  public static void transfer(){
-    System.out.println("I'm in transfer");
-    try{
-      Statement stmt = conn.createStatement();
 
-      stmt.close();
+  /* Function name: transfer
+   * Transfers money from one account (source) to another account (sink). Both accounts must be owned by the given customer
+   * and the Source account must have at least the amount to be transferred to the Sink account
+   * @param customerName : the customer name (String)
+   * @param accNoSource : the source account number to take money out of (format XXX XXXX) (String)
+   * @param accNoSink : the sink account number to transfer money to (format XXX XXXX) (String)
+   * return void 
+  */
+  public static void transfer(String customerName, String accNoSource, String accNoSink, String amount){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
+    try{
+      int customerNum               = 0;
+      //Parsing the accNo in format XXX XXXX
+      String[] sourceAccount        = accNoSource.split("\\s+");
+      String[] sinkAccount          = accNoSink.split("\\s+");
+      int sourceBranchNum           = 0;
+      int sourceLocalAccNum         = 0;
+      int sinkBranchNum             = 0;
+      int sinkLocalAccNum           = 0;
+      float amtToTransfer           = Float.parseFloat(amount);
+      
+      //Checking correct sink account number format
+      if (sourceAccount.length != 2){
+        System.out.println("Error - please enter a valid account number (XXX XXXX) for the account source");
+        return;
+      }
+      if (sourceAccount[0].length() != 3 || sourceAccount[1].length() != 4){
+        System.out.println("Error - please enter a valid account number (XXX XXXX) for the account source");
+        return;
+      }
+      
+      //Checking correct source account number format
+      if (sinkAccount.length != 2){
+        System.out.println("Error - please enter a valid account number (XXX XXXX) for the account sink");
+        return;
+      }
+      if (sinkAccount[0].length() != 3 || sinkAccount[1].length() != 4){
+        System.out.println("Error - please enter a valid account number (XXX XXXX) for the account sink");
+        return;
+      }
+
+      sourceBranchNum = Integer.parseInt(sourceAccount[0]);
+      sourceLocalAccNum = Integer.parseInt(sourceAccount[1]);
+
+      sinkBranchNum = Integer.parseInt(sinkAccount[0]);
+      sinkLocalAccNum = Integer.parseInt(sinkAccount[1]);
+
+      //Query customer table for the customer number
+      try{
+        customerNum = Integer.parseInt(getCustomerNoFromName(customerName));
+      }
+      catch(NumberFormatException e){
+        System.out.println("Given customer does not match any in the database. No transfer was done");
+        return;
+      }
+
+      //Query account table using customer number, branch number, and matches the source or sink local account numbers
+      pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance " + 
+                                    "from account where customerNo = ? AND ((branchNo = ? and localAccNo = ?) OR (branchNo = ? and localAccNo = ?))",
+                                    ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                    ResultSet.CONCUR_UPDATABLE);
+      pStmt.setString(1,String.format("%05d",customerNum));
+      pStmt.setString(2,String.format("%03d",sourceBranchNum));
+      pStmt.setString(3,String.format("%04d",sourceLocalAccNum));
+      pStmt.setString(4,String.format("%03d",sinkBranchNum));
+      pStmt.setString(5,String.format("%04d",sinkLocalAccNum));
+      
+      rs = pStmt.executeQuery();
+
+      Boolean isSourceExist = false;
+      float sourceBalanceRemaining = 0.0f;
+      float sinkBalanceRemaining = 0.0f;
+      //First check if the specified amount is less than the balance of the account source's balance, if it is then subtract
+      while(rs.next()){
+        //Find matching source account number
+        if(Integer.parseInt(rs.getString("branchNo")) == sourceBranchNum 
+           && Integer.parseInt(rs.getString("localAccNo")) == sourceLocalAccNum){
+          
+          isSourceExist = true;
+          if(rs.getFloat("balance") < amtToTransfer){
+            System.out.println("Error - amount to transfer is greater than the balance of the first account. Cannot transfer");
+            return;
+          } 
+          
+          rs.updateFloat("balance", rs.getFloat("balance") - amtToTransfer);
+          sourceBalanceRemaining = rs.getFloat("balance");
+          rs.updateRow(); 
+        } 
+      }
+
+      if (!isSourceExist){
+        System.out.println("Error - First account number given does not exist with this customer. Cannot transfer");
+        return; 
+      }
+      //Next, check if the account sink exists, if not, then rollback changes (specify error)
+      rs.beforeFirst();
+      Boolean isSinkExist = false;
+      while(rs.next()){
+        //Find matching sink account number
+        if(Integer.parseInt(rs.getString("branchNo")) == sinkBranchNum 
+           && Integer.parseInt(rs.getString("localAccNo")) == sinkLocalAccNum){
+          
+          isSinkExist = true;
+          rs.updateFloat("balance",rs.getFloat("balance") + amtToTransfer);
+          sinkBalanceRemaining = rs.getFloat("balance");
+          rs.updateRow();
+        } 
+      }
+
+      //If the sink account number does not match with any in the result set, we need to roll back our changes 
+      if(!isSinkExist){
+        System.out.println("Error - Second account number given does not exist with this customer. Cannot transfer");
+        conn.rollback();
+        return;
+      }
+
+      conn.commit();
+      System.out.println("Successfully transferred $" +
+                          String.format("%.2f",amtToTransfer) + " from Account " +
+                          String.format("%03d",sourceBranchNum) + " " + String.format("%04d",sourceLocalAccNum) +
+                          " (Updated Balance: $" + String.format("%.2f",sourceBalanceRemaining) + ")" +  
+                          " to Account " +
+                          String.format("%03d",sinkBranchNum) + " " + String.format("%04d",sinkLocalAccNum) +
+                          " (Updated Balance: $" + String.format("%.2f",sinkBalanceRemaining) + ")" +
+                            " For customer " + customerName); 
+
+    }
+    catch(NumberFormatException e){
+      System.out.println("Error - One of the accounts has an invalid account number or the amount specified is invalid. Account number must be in format XXX XXXX. No transfer occured");
+      return;
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
       e.printStackTrace();
       System.exit(-1);
+    }
+    finally{
+      try{
+        if (rs != null){
+          rs.close();
+        }
+        if (pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch (SQLException e){
+        e.printStackTrace();
+      }
     }
   }
   public static void showBranch(){
@@ -939,6 +1083,53 @@ public class Part2
       catch(Exception e){
         e.printStackTrace();
       }
+    }
+  }
+
+  /* Function: getCustomerNoFromName
+   * Helper method to Getting customer number from a given customer name
+   * @param customerName : the given customer's name
+   * 
+   * return String for the customer number in string form, or null 
+   * if the given customer name doesn't exist in database
+   */
+  private static String getCustomerNoFromName(String customerName){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
+    String customerNum = null;
+    try{
+      //Get the customer number (assuming customer name is unique);
+      pStmt = conn.prepareStatement("select customerNo from customer where name = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
+      pStmt.setString(1,customerName);
+      rs = pStmt.executeQuery();
+      if (!rs.first()){
+        System.out.println("Error - Customer with the given name was not found, cancelling withdraw");
+        return null;
+      }
+
+      customerNum = rs.getString("customerNo"); 
+    }
+    catch(Exception e){
+      System.out.println("SQL exception: ");
+      e.printStackTrace();
+      System.exit(-1);
+    }
+    finally{
+      try{
+        if(rs != null){
+          rs.close();
+        }
+        if(pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch(Exception e){
+        e.printStackTrace();
+      }
+      return customerNum;
+
     }
   }
 }

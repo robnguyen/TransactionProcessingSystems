@@ -1,0 +1,37 @@
+Script started on Mon 12 Oct 2015 11:16:47 AM UTC
+]0;fedora@COMP4003:~/A3[?1034h[fedora@COMP4003 A3]$ sqlplus
+
+SQL*Plus: Release 11.2.0.2.0 Production on Mon Oct 12 11:16:56 2015
+
+Copyright (c) 1982, 2011, Oracle.  All rights reserved.
+
+Enter user-name: oracle
+Enter password: 
+
+Connected to:
+Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+
+SQL> set serveroutput on size 100000
+SQL> set linesize 10000
+SQL> set pagesize 50000
+SQL> @p1.sql
+
+PL/SQL procedure successfully completed.
+
+SQL> select * from student;
+
+no rows selected
+
+SQL> select * from course;
+
+no rows selected
+
+SQL> select * from grade;
+
+no rows selected
+
+SQL> exit
+Disconnected from Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+]0;fedora@COMP4003:~/A3[fedora@COMP4003 A3]$ exit
+
+Script done on Mon 12 Oct 2015 11:17:34 AM UTC

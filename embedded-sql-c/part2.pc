@@ -1,0 +1,244 @@
+/*
+
+FILE: PART2.pc
+DESC: program that inserts tables based on user-input.
+      The program will ask what table to insert values into
+      The program will then ask for the column values of each tuple (in a single line)
+      Showing the correct accept value
+
+
+To Compile and run (makefile way):
+1. yum install make      (this vm doesn't have make utility by default) 
+2. make p2            (file 'makefile' is included)
+3. ./p2
+
+To Compile and run (tedious way):
+1. proc part2.pc
+2. cc -c part2.c -I/usr/include/oracle/11.2/client64
+3. cc -o p2 part2.o -L/usr/lib/oracle/11.2/client64/lib -lclntsh
+4. ./p2
+*/
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define BUFFER_SIZE 100
+
+exec sql include sqlca;
+exec sql begin declare section;
+  char  sqlstmt[1024];
+
+  char  sno[10];
+  char  sname[25];
+  char  status[3];
+  char  city[25];
+
+  char  pno[10];
+  char  pname[25];
+  char  color[10];
+  float weight;
+
+  int   qty;
+
+  char  *username= "oracle";
+  char  *password= "oracle11g";
+exec sql end declare section;
+
+void insertSuppliers(void);
+void insertParts(void);
+void insertSP(void);
+int  checkCorrectArgs(char[],int);
+
+int main() {
+  char buffer[BUFFER_SIZE];
+  
+  //Connect to DB
+  exec sql connect :username identified by :password;
+  if (sqlca.sqlcode == 0)
+      printf("Oracle connected\n");    
+  else
+      printf("Oracle not connected\n");
+
+  //User prompt 
+  while(1){
+    printf("Please enter a table to insert values for (COMMAND OPTIONS: 1.suppliers 2.parts 3.sp or 0.exit):");
+    fgets(buffer,BUFFER_SIZE,stdin);
+
+    buffer[strlen(buffer)-1] = '\0';
+    if (!strcmp(buffer,"exit") || !strcmp(buffer,"0")) break;
+    else if (!strcmp(buffer,"suppliers") || !strcmp(buffer,"SUPPLIERS") || !strcmp(buffer,"1")) insertSuppliers();
+    else if (!strcmp(buffer,"parts") || !strcmp(buffer,"PARTS") || !strcmp(buffer,"2")) insertParts();
+    else if (!strcmp(buffer,"sp") || !strcmp(buffer,"SP") || !strcmp(buffer,"3")) insertSP();
+  }
+
+  exec sql commit release;
+  exit(0);
+}
+
+//Insert tuples for Suppliers until user enters "done"
+void insertSuppliers(){
+  char buffer[BUFFER_SIZE];
+  char bufferCpy[BUFFER_SIZE]; 
+  //char pointer used to parse user statement into each word
+  char *frag;
+
+  strcpy(sqlstmt, "insert into suppliers values (:v1, :v2, :v3, :v4)");
+
+  exec sql prepare s from :sqlstmt;
+   
+  //Prompts user to enter in values for a tuple to insert into suppliers, will keep prompting user to enter in values until they type 'done' 
+  while(1){
+    printf("Please enter values for suppliers in following format 'S# SNAME STATUS CITY' (Or enter 'done' if finished adding tuples):");
+    fgets(buffer,BUFFER_SIZE,stdin);
+    buffer[strlen(buffer)-1] = '\0';
+    
+    if(!strcmp(buffer,"done") || !strcmp(buffer,"DONE")) break; 
+    strcpy(bufferCpy,buffer);
+    //checks if the user entered the correct number of arguments for the tuple creation before copying over the values
+    if(!checkCorrectArgs(bufferCpy,4)){
+      frag = strtok(buffer," ");
+      strcpy(sno, frag);
+      frag = strtok(NULL," ");
+      strcpy(sname, frag);
+      frag = strtok(NULL," ");
+      strcpy(status,frag);
+      frag = strtok(NULL," ");
+      strcpy(city, frag);
+    }
+    else{
+      printf("Incorrect format\n");
+      continue;
+    }
+
+  
+    exec sql execute s using :sno, :sname, :status, :city;
+    if (sqlca.sqlcode == 0)
+        printf("insert done\n");
+    else
+        printf("insert failed (%s)\n", sqlca.sqlerrm.sqlerrmc);
+    
+  }
+  
+  //request to commit inserts after user is done with supplier tuple inserts
+  exec sql commit;
+  return;
+}
+
+void insertParts(){
+  char buffer[BUFFER_SIZE];
+  char *frag;
+  char bufferCpy[BUFFER_SIZE];  
+  strcpy(sqlstmt, "insert into parts values (:v1, :v2, :v3, :v4, :v5)");
+
+  exec sql prepare s from :sqlstmt;
+  if (sqlca.sqlcode == 0)
+    printf("statement for parts prepared \n");    
+  else {
+    printf("statement for parts not prepared \n");
+    return;
+  }    
+
+  //Prompts user to enter in values for a tuple to insert into parts, will keep prompting user to enter in values until they type 'done' 
+  while(1){
+    printf("Please enter values for parts in following format 'P# NAME COLOR WEIGHT CITY' (Or enter 'done' if finished adding tuples):");
+    fgets(buffer,BUFFER_SIZE,stdin);
+    buffer[strlen(buffer)-1] = '\0';
+
+    if(!strcmp(buffer,"done") || !strcmp(buffer,"DONE")) break;
+    strcpy(bufferCpy,buffer);
+    if(!checkCorrectArgs(bufferCpy,5)){
+      frag = strtok(buffer," ");
+      strcpy(pno, frag);
+      frag = strtok(NULL," ");
+      strcpy(pname, frag);
+      frag = strtok(NULL," ");
+      strcpy(color,frag);
+      frag = strtok(NULL," ");
+      weight = atof(frag);
+      frag = strtok(NULL," ");
+      strcpy(city,frag);
+
+    }
+    else{
+      printf("Incorrect format\n");
+      continue;
+    } 
+  
+    exec sql execute s using :pno, :pname, :color, :weight, :city;
+    if (sqlca.sqlcode == 0)
+        printf("insert done\n");
+    else
+        printf("insert failed (%s)\n", sqlca.sqlerrm.sqlerrmc);
+    
+  }
+
+  exec sql commit;
+
+  return;
+}
+
+void insertSP(){
+  char buffer[BUFFER_SIZE];
+  char *frag;
+  char bufferCpy[BUFFER_SIZE];
+
+  strcpy(sqlstmt, "insert into sp values (:v1, :v2, :v3)");
+
+
+  exec sql prepare s from :sqlstmt;
+  if (sqlca.sqlcode == 0)
+    printf("statement for parts prepared \n");    
+  else {
+    printf("statement for parts not prepared \n");
+    return;
+  }    
+
+  while(1){
+    printf("Please enter values for sp in following format 'S# P# QUANTITY' (Or enter 'done' if finished adding tuples):");
+    fgets(buffer,BUFFER_SIZE,stdin);
+    buffer[strlen(buffer)-1] = '\0';
+
+    if(!strcmp(buffer,"done") || !strcmp(buffer,"DONE")) break;
+    strcpy(bufferCpy,buffer);
+    if(!checkCorrectArgs(bufferCpy,3)){
+      frag = strtok(buffer," ");
+      strcpy(sno, frag);
+      frag = strtok(NULL, " ");
+      strcpy(pno, frag);
+      frag = strtok(NULL, " ");
+      qty = atoi(frag);
+    
+    }    
+    else{
+      printf("Incorrect format\n");
+      continue;
+    }
+    exec sql execute s using :sno, :pno, :qty;
+    if (sqlca.sqlcode == 0)
+        printf("insert done\n");
+    else
+        printf("insert failed (%s)\n", sqlca.sqlerrm.sqlerrmc);
+
+
+  }
+
+  exec sql commit;
+
+  return;
+}
+
+
+int checkCorrectArgs(char buf[], int nargs){
+  char* frag;
+  int counter = 0;
+  frag = strtok(buf," ");
+  counter++;
+  while (frag != NULL){
+    frag = strtok(NULL, " ");
+    counter++;
+  }
+  counter--;
+  return (nargs==counter) ? 0 : 1;
+
+}

@@ -1,0 +1,136 @@
+/* 
+
+FILE: PART3.pc
+DESC: Displays all suppliers in the table and the parts that they own in stdout
+      Cool format, huh?
+
+
+
+To Compile and run (makefile way):
+1. yum install make      (this vm doesn't have make utility by default) 
+2. make p3            (file 'makefile' is included)
+3. ./p3
+
+To Compile and run (tedious way):
+1. proc part3.pc
+2. cc -c part3.c -I/usr/include/oracle/11.2/client64
+3. cc -o p3 part3.o -L/usr/lib/oracle/11.2/client64/lib -lclntsh
+4. ./p3
+*/
+
+#include <stdio.h>
+#include <string.h>
+
+exec sql include sqlca;
+exec sql begin declare section;
+  char sqlstmt[1024];
+  
+  char  sno[10];
+  char  sname[25];
+  char  status[3];
+  char  city[25];
+
+  char  pno[10];
+  char  pname[25];
+  char  color[10];
+  float weight;
+  char  pcity[25];
+
+  int   qty;
+
+  char *username= "oracle";
+  char *password= "oracle11g";
+exec sql end declare section;
+
+char* rtrim(char *);
+
+int main() {
+  
+
+  exec sql connect :username identified by :password;
+  if (sqlca.sqlcode == 0)
+      printf("Oracle connected\n");    
+  else
+      printf("Oracle not connected\n");
+   
+
+/*  query table account using dynamic SQL method 3      */
+
+  strcpy(sqlstmt, "select s#, sname, status, city from suppliers order by s# asc");
+
+  exec sql prepare sups from :sqlstmt;
+  if (sqlca.sqlcode == 0)
+      printf("statement for suppliers prepared \n");
+  else
+      printf("statement for suppliers not prepared \n");
+
+  
+  strcpy(sqlstmt, "select p.p#, p.pname, p.color, p.weight, p.city FROM parts p, sp WHERE p.p# = sp.p# and sp.s# = :v1 ORDER BY p.p# ASC");
+  exec sql prepare parts from :sqlstmt;
+  if (sqlca.sqlcode == 0)
+      printf("statement for parts prepared \n");
+  else
+      printf("statement for parts not prepared \n");
+  
+  exec sql declare sups_cursor cursor for sups;
+  exec sql declare parts_cursor cursor for parts;
+  
+  exec sql open sups_cursor;
+  if (sqlca.sqlcode == 0)
+      printf("Cursor opened\n");
+  else
+      printf("Cursor error\n");
+  
+
+  printf("+----------+-------------------------+----------+-------------------------+\n");
+  printf("|    S#    |         SNAME           |  STATUS  |         CITY            |\n");
+  printf("+==========+=========================+==========+=========================+\n");
+   
+  
+
+  exec sql fetch sups_cursor into :sno, :sname, :status, :city;
+  
+  while(sqlca.sqlcode==0) {
+ 
+    
+    printf("|%10s|%25s|%-10s|%25s|\n",sno,sname,status,city);  
+    printf("+----------+-------------------------+----------+-------------------------+\n"); 
+    
+    
+    strcpy(sno,rtrim(sno));
+
+    //open cursor that has the results for all the parts that this supplier supplies
+    exec sql open parts_cursor using :sno;
+    if (sqlca.sqlcode == 0){
+      
+      
+      exec sql fetch parts_cursor into :pno, :pname, :color, :weight, :pcity;
+      printf("|                                                                         |\n");
+      printf("|    +------+----------------+------------+--------+------------------+   |\n");
+      printf("|    |  P#  |    PNAME       |   COLOR    | WEIGHT |       CITY       |   |\n");
+      printf("|    +======+================+============+========+==================+   |\n");  
+      
+      while(sqlca.sqlcode==0){
+        printf("|    |%-6s|%-16s|%-12s|%-8.2f|%-18s|   |\n", rtrim(pno), rtrim(pname), rtrim(color), weight, rtrim(pcity));
+        printf("|    +------+----------------+------------+--------+------------------+   |\n");
+        exec sql fetch parts_cursor into :pno, :pname, :color, :weight, :pcity; 
+      }
+      exec sql close parts_cursor;
+    }
+    printf("|                                                                         |\n");
+    printf("+----------+-------------------------+----------+-------------------------+\n"); 
+    exec sql fetch sups_cursor into :sno, :sname, :status, :city;
+  }
+  exec sql close sups_cursor;
+
+  exec sql commit release;
+  exit(0);
+}
+
+//Removes trailing spaces from string from the right (SQL driver for some reason adds white space when fetching into);
+char* rtrim(char *s){
+    char* b = s + strlen(s);
+    while(isspace(*--b));
+    *(b+1) = '\0';
+    return s;
+}

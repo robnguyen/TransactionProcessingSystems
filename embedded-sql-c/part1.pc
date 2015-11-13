@@ -1,0 +1,71 @@
+/* 
+
+FILE: PART1.pc
+DESC: This program creates the 3 tables (suppliers, parts, and sp) using embedded SQL 
+(execute immediate statement). 
+
+To Compile and run (makefile way):
+1. yum install make 
+2. make p1
+3. ./p1
+
+To Compile and run (tedious way):
+1. proc part1.pc
+2. cc -c part1.c -I/usr/include/oracle/11.2/client64
+3. cc -o p1 part1.o -L/usr/lib/oracle/11.2/client64/lib -lclntsh
+
+*/
+
+#include <stdio.h>
+exec sql include sqlca;
+exec sql begin declare section;
+  char sqlstmt[1024];
+  char *MYID= "oracle/oracle11g";
+exec sql end declare section;
+
+int main(){
+  exec sql connect :MYID;
+  if (sqlca.sqlcode == 0)
+      printf("Connected to ORACLE\n");
+  else
+      printf("Connect Failed\n");
+
+/*  create table suppliers using dynamic method 1 	*/
+
+  strcpy(sqlstmt, "create table suppliers (s# varchar2(10) NOT NULL, sname varchar2(25) UNIQUE,status char(2) NOT NULL CHECK(STATUS IN ('20','30')), city varchar2(25), PRIMARY KEY(S#))");
+
+  exec sql set transaction read write;
+  exec sql execute immediate :sqlstmt;
+  if (sqlca.sqlcode == 0)
+      printf("Table suppliers created \n");    
+  else
+      printf("Table suppliers not created\n");
+
+	  
+/*  create table parts using dynamic method 1 	*/
+  strcpy(sqlstmt, "create table parts (p# varchar2(10) not null, pname varchar2(25) not null, color varchar2(10), weight float check(weight>0), city varchar2(25), primary key (p#))");
+  
+  exec sql set transaction read write;
+  exec sql execute immediate :sqlstmt;
+  if (sqlca.sqlcode == 0)
+	printf("Table parts created \n");
+  else 
+	printf("Table parts not created \n");
+
+	
+/* create table sp using dynamic method 1 */
+
+  strcpy(sqlstmt, "create table sp (s# varchar2(10) not null, p# varchar2(10) not null, qty integer not null check(qty >= 0), primary key (s#,p#), foreign key (s#) references suppliers(s#) on delete cascade, foreign key (p#) references parts(p#) on delete cascade)");
+  exec sql set transaction read write;
+  exec sql execute immediate :sqlstmt;
+  if (sqlca.sqlcode == 0)
+	printf ("Table sp created \n");
+  else
+	printf("Table sp not created \n");
+  
+  exec sql commit release;
+  
+  
+  exit(0);
+}
+

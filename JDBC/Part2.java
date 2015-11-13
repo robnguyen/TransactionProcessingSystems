@@ -106,7 +106,7 @@ public class Part2
           String customerName = console.readLine("Enter customer name: ");
           String sourceAccountNo = console.readLine("Enter account number to withdraw money from (XXX XXXX): " );
           String sinkAccountNo = console.readLine("Enter account number to transfer the money to (XXX XXXX): " );
-          String amount = console.readLine("Enter amount of money to transfer: " );
+          String amount = console.readLine("Enter amount of money to transfer (or press enter if no initial amount): " );
           transfer(customerName, sourceAccountNo, sinkAccountNo, amount);
         }
         else if (option.equals("9") || option.toUpperCase().equals("SHOW BRANCH")){
@@ -354,7 +354,7 @@ public class Part2
           ". Local account number is " 
           + String.format("%04d",counter) 
           + " with initial amount of " 
-          + initialAmount);  
+          + String.format("%.2f",initAmt));  
 
       //Update the customer status after inserting the new account row
       updateCustomerStatus(customerNum);

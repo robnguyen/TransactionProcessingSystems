@@ -118,7 +118,9 @@ public class Part2
           showAllBranches();
         }
         else if (option.equals("11") || option.toUpperCase().equals("SHOW CUSTOMER")){
-          showCustomer();
+          System.out.println("---------------------------------------------------------"); 
+          String customerName = console.readLine("Enter customer name : ");
+          showCustomer(customerName);
         }
         else if (option.equals("12") || option.toUpperCase().equals("EXIT")){
           System.out.println("Exiting... goodbye!");
@@ -206,6 +208,7 @@ public class Part2
         }
         if (!isFound){
           System.out.println("No matching branch with branch number found, please enter the correct branch number");
+          return;
         }
 
       }
@@ -221,6 +224,7 @@ public class Part2
         }
         if (!isFound){
           System.out.println("No matching branch with the specified address was found, please enter a valid address");
+          return;
         }
       }
 
@@ -280,15 +284,11 @@ public class Part2
       }
       //Case where address is given
       catch(NumberFormatException e){
-        pStmt = conn.prepareStatement("Select branchNo, address from branch where address= ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        pStmt.setString(1, branch);
-        rs = pStmt.executeQuery();
-        if(!rs.first()){
-          System.out.println("Specified branch by address does not exist");  
+        branchNum = String.format("%03d", getBranchNoFromAddress(branch)); 
+        if (Integer.parseInt(branchNum) == -1){
+          System.out.println("Specified branch by address does not exist");
           return false;
         }
-        rs.first();
-        branchNum = rs.getString("branchNo");
       }
       finally{
         try{
@@ -491,20 +491,11 @@ public class Part2
       }
       //If branch string given is an address, need to query database for the branchNo 
       catch(NumberFormatException e){
-        pStmt = conn.prepareStatement("select branchNo from branch where address = ?", 
-            ResultSet.TYPE_SCROLL_INSENSITIVE, 
-            ResultSet.CONCUR_READ_ONLY);
-
-        pStmt.setString(1,branch);
-        rs = pStmt.executeQuery();
-        //Check if given branch address gives back no results, if so return with an error
-        if(!rs.first()){
-          System.out.println("Error - Address given does not match with any branch address");
+        branchNum = getBranchNoFromAddress(branch); 
+        if (branchNum == -1){
+          System.out.println("Specified branch by address does not exist");
           return;
         }
-        rs.first();
-        branchNum = Integer.parseInt(rs.getString("branchNo"));
-
       }
       finally{
         try{
@@ -816,7 +807,7 @@ public class Part2
    * @param accNoSource : the source account number to take money out of (format XXX XXXX) (String)
    * @param accNoSink : the sink account number to transfer money to (format XXX XXXX) (String)
    * return void 
-  */
+   */
   public static void transfer(String customerName, String accNoSource, String accNoSink, String amount){
     PreparedStatement pStmt = null;
     ResultSet rs = null;
@@ -830,7 +821,7 @@ public class Part2
       int sinkBranchNum             = 0;
       int sinkLocalAccNum           = 0;
       float amtToTransfer           = Float.parseFloat(amount);
-      
+
       //Checking correct sink account number format
       if (sourceAccount.length != 2){
         System.out.println("Error - please enter a valid account number (XXX XXXX) for the account source");
@@ -840,7 +831,7 @@ public class Part2
         System.out.println("Error - please enter a valid account number (XXX XXXX) for the account source");
         return;
       }
-      
+
       //Checking correct source account number format
       if (sinkAccount.length != 2){
         System.out.println("Error - please enter a valid account number (XXX XXXX) for the account sink");
@@ -868,15 +859,15 @@ public class Part2
 
       //Query account table using customer number, branch number, and matches the source or sink local account numbers
       pStmt = conn.prepareStatement("select branchNo, localAccNo, customerNo, balance " + 
-                                    "from account where customerNo = ? AND ((branchNo = ? and localAccNo = ?) OR (branchNo = ? and localAccNo = ?))",
-                                    ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                    ResultSet.CONCUR_UPDATABLE);
+          "from account where customerNo = ? AND ((branchNo = ? and localAccNo = ?) OR (branchNo = ? and localAccNo = ?))",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE);
       pStmt.setString(1,String.format("%05d",customerNum));
       pStmt.setString(2,String.format("%03d",sourceBranchNum));
       pStmt.setString(3,String.format("%04d",sourceLocalAccNum));
       pStmt.setString(4,String.format("%03d",sinkBranchNum));
       pStmt.setString(5,String.format("%04d",sinkLocalAccNum));
-      
+
       rs = pStmt.executeQuery();
 
       Boolean isSourceExist = false;
@@ -886,18 +877,18 @@ public class Part2
       while(rs.next()){
         //Find matching source account number
         if(Integer.parseInt(rs.getString("branchNo")) == sourceBranchNum 
-           && Integer.parseInt(rs.getString("localAccNo")) == sourceLocalAccNum){
-          
+            && Integer.parseInt(rs.getString("localAccNo")) == sourceLocalAccNum){
+
           isSourceExist = true;
           if(rs.getFloat("balance") < amtToTransfer){
             System.out.println("Error - amount to transfer is greater than the balance of the first account. Cannot transfer");
             return;
           } 
-          
+
           rs.updateFloat("balance", rs.getFloat("balance") - amtToTransfer);
           sourceBalanceRemaining = rs.getFloat("balance");
           rs.updateRow(); 
-        } 
+            } 
       }
 
       if (!isSourceExist){
@@ -910,13 +901,13 @@ public class Part2
       while(rs.next()){
         //Find matching sink account number
         if(Integer.parseInt(rs.getString("branchNo")) == sinkBranchNum 
-           && Integer.parseInt(rs.getString("localAccNo")) == sinkLocalAccNum){
-          
+            && Integer.parseInt(rs.getString("localAccNo")) == sinkLocalAccNum){
+
           isSinkExist = true;
           rs.updateFloat("balance",rs.getFloat("balance") + amtToTransfer);
           sinkBalanceRemaining = rs.getFloat("balance");
           rs.updateRow();
-        } 
+            } 
       }
 
       //If the sink account number does not match with any in the result set, we need to roll back our changes 
@@ -928,13 +919,13 @@ public class Part2
 
       conn.commit();
       System.out.println("Successfully transferred $" +
-                          String.format("%.2f",amtToTransfer) + " from Account " +
-                          String.format("%03d",sourceBranchNum) + " " + String.format("%04d",sourceLocalAccNum) +
-                          " (Updated Balance: $" + String.format("%.2f",sourceBalanceRemaining) + ")" +  
-                          " to Account " +
-                          String.format("%03d",sinkBranchNum) + " " + String.format("%04d",sinkLocalAccNum) +
-                          " (Updated Balance: $" + String.format("%.2f",sinkBalanceRemaining) + ")" +
-                            " For customer " + customerName); 
+          String.format("%.2f",amtToTransfer) + " from Account " +
+          String.format("%03d",sourceBranchNum) + " " + String.format("%04d",sourceLocalAccNum) +
+          " (Updated Balance: $" + String.format("%.2f",sourceBalanceRemaining) + ")" +  
+          " to Account " +
+          String.format("%03d",sinkBranchNum) + " " + String.format("%04d",sinkLocalAccNum) +
+          " (Updated Balance: $" + String.format("%.2f",sinkBalanceRemaining) + ")" +
+          " For customer " + customerName); 
 
     }
     catch(NumberFormatException e){
@@ -960,10 +951,79 @@ public class Part2
       }
     }
   }
+
+  /* Function showBranch
+   * Description: Show the branch information, associated accounts, and total balance of the branch, for a given branch address or number
+   * @param branch: the branch address or the branch number
+   */
   public static void showBranch(String branch){
     PreparedStatement pStmt = null;
     ResultSet rs = null;
     try{
+
+      float totalBalance = 0.0f;
+      int   branchNum    = 0;
+      String branchAddress = null;
+
+      //Attempt to convert branch into a number. (if it worked, then we know it's a branch number passed in)
+      try{
+        branchNum = Integer.parseInt(branch);
+
+      }
+      //Otherwise, get the branch number given the branch address 
+      catch (NumberFormatException e){
+        branchNum = getBranchNoFromAddress(branch);
+        if (branchNum == -1 ){
+          System.out.println("Error - given branch address does not specify a branch.");
+          return;
+        }
+      }
+
+      //Check if branch exists in database 
+      pStmt = conn.prepareStatement("select branchNo, address from branch where branchNo = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
+
+      pStmt.setString(1, String.format("%03d", branchNum));
+      rs = pStmt.executeQuery();
+      if (!rs.first()){
+        System.out.println("Error - Specified branch number does not exist.");
+        return;
+      } 
+
+      branchAddress = rs.getString("address");
+
+      rs.close();
+      pStmt.close();
+
+      //Print out the branch number and address, followed by the accounts (and their balances)  associated with this branch 
+      System.out.println(" ");
+      System.out.println("|------------------------------------------------- ");
+      System.out.println("|Branch Number : " + String.format("%03d",branchNum));
+      System.out.println("|Branch Address : " + branchAddress);
+      System.out.println("|ACCOUNTS");
+      System.out.println("|--------");
+
+      pStmt = conn.prepareStatement("select localAccNo, balance from account where branchNo = ? order by localAccNo asc",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY); 
+      pStmt.setString(1,String.format("%03d",branchNum));
+      rs = pStmt.executeQuery();
+
+      Boolean isEmpty = true;
+      while (rs.next()){
+        System.out.println("|Local Account number: " + rs.getString("localAccNo") + "     balance: " + String.format("%.2f",rs.getFloat("balance")));
+
+        totalBalance += rs.getFloat("balance");
+        isEmpty = false;
+      }
+      
+      if(isEmpty){
+        System.out.println("|No accounts associated with this branch");
+        
+      }
+      System.out.println("|Total balance: " + String.format("%.2f", totalBalance));
+      System.out.println("|------------------------------------------------- ");
 
     }
     catch(Exception e){
@@ -985,30 +1045,124 @@ public class Part2
       }
     }
   }
-  public static void showAllBranches(){
-    System.out.println("I'm in show all branches");
-    try{
-      Statement stmt = conn.createStatement();
 
-      stmt.close();
+  /* Function showAllBranches
+   * Description: Show all the branches in the DB using the showBranch method
+   */
+  public static void showAllBranches(){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
+    try{
+      pStmt = conn.prepareStatement("Select branchNo from branch",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
+      rs = pStmt.executeQuery();
+
+      while(rs.next()){
+        showBranch(rs.getString("branchNo"));    
+      }
+
+
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
       e.printStackTrace();
       System.exit(-1);
+    }
+    finally{
+      try{
+        if (rs != null){
+          rs.close();
+        }
+        if (pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch (SQLException e){
+        e.printStackTrace();
+      }
     }
   }
-  public static void showCustomer(){
-    System.out.println("I'm in show customer");
-    try{
-      Statement stmt = conn.createStatement();
 
-      stmt.close();
+  /* Function showCustomer
+   * Description: show's customer information (customer number, status) as well as information on all accounts associated
+   * Also displays the total balance for customer
+   * @param customerName : the customer name (string)
+   * return void
+   */
+  public static void showCustomer(String customerName){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
+    float totalBalance = 0.0f;
+    try{
+
+      String customerNum = getCustomerNoFromName(customerName);
+      if (customerNum == null){
+        return;
+      }
+
+      pStmt = conn.prepareStatement("select customerNo, name, status from customer where customerNo = ?",
+                                    ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                    ResultSet.CONCUR_READ_ONLY);
+
+      pStmt.setString(1,customerNum);
+
+      rs = pStmt.executeQuery();
+
+      rs.first();
+
+      System.out.println(" ");
+      System.out.println("Customer Number: " +  rs.getString("customerNo"));
+      System.out.println("Customer Name: " + rs.getString("name"));
+      System.out.println("Customer Status: " + rs.getInt("status"));
+      System.out.println(" ");
+      System.out.println("ACCOUNTS");
+      System.out.println("--------");
+
+      rs.close();
+      pStmt.close();
+
+      //Print out the associated accounts if any.
+      pStmt = conn.prepareStatement("select branchNo, localAccNo, balance from account where customerNo = ?",
+                                    ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                    ResultSet.CONCUR_READ_ONLY);
+
+      pStmt.setString(1,customerNum);
+      rs = pStmt.executeQuery();
+
+      if(!rs.first()){
+        System.out.println("No accounts associated with this customer");
+      }
+      rs.beforeFirst();
+
+      while(rs.next()){
+        System.out.println(" ");
+        System.out.println("Account Number: " + rs.getString("branchNo") + " " + rs.getString("localAccNo") + "  Balance: " + String.format("%.2f",rs.getFloat("balance")));
+        totalBalance += rs.getFloat("balance");
+      }
+
+      System.out.println(" ");
+
+      System.out.println("Total Balance: " + String.format("%.2f",totalBalance));
+
     }
     catch(Exception e){
       System.out.println("SQL exception: ");
       e.printStackTrace();
       System.exit(-1);
+    }
+    finally{
+      try{
+        if (rs != null){
+          rs.close();
+        }
+        if (pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch (SQLException e){
+        e.printStackTrace();
+      }
     }
   }
 
@@ -1105,7 +1259,7 @@ public class Part2
       pStmt.setString(1,customerName);
       rs = pStmt.executeQuery();
       if (!rs.first()){
-        System.out.println("Error - Customer with the given name was not found, cancelling withdraw");
+        System.out.println("Error - Customer with the given name was not found ");
         return null;
       }
 
@@ -1129,6 +1283,51 @@ public class Part2
         e.printStackTrace();
       }
       return customerNum;
+
+    }
+  }
+
+  /* Function getBranchNoFromAddress 
+   * Description: Helper method to getting the branch number from a given branch address
+   * @param branchAddress
+   * return an int for the branch number , or -1 if the given address does not specify a branch number
+   */
+  private static int getBranchNoFromAddress (String branchAddress){
+    PreparedStatement pStmt = null;
+    ResultSet rs = null;
+    int branchNum = 0;
+    try{
+      //Get the branch number (assuming the address is unique);
+      pStmt = conn.prepareStatement("select branchNo from branch where address = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
+      pStmt.setString(1,branchAddress);
+      rs = pStmt.executeQuery();
+      if (!rs.first()){
+        branchNum = -1;
+        return branchNum; 
+      }
+
+      branchNum = Integer.parseInt(rs.getString("branchNo"));  
+    }
+    catch(Exception e){
+      System.out.println("SQL exception: ");
+      e.printStackTrace();
+      System.exit(-1);
+    }
+    finally{
+      try{
+        if(rs != null){
+          rs.close();
+        }
+        if(pStmt != null){
+          pStmt.close();
+        }
+      }
+      catch(Exception e){
+        e.printStackTrace();
+      }
+      return branchNum;
 
     }
   }

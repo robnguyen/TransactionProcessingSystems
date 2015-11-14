@@ -10,7 +10,7 @@ import java.util.*;
 
 public class Part2 
 {
-  private static Connection conn = null;
+  public static Connection conn = null;
   public static void main(String[] args) 
   {
     try
@@ -79,7 +79,8 @@ public class Part2
           System.out.println("---------------------------------------------------------"); 
           String customerName = console.readLine("Enter customer name: ");
           String branch = console.readLine("Enter Branch number or branch address: ");
-          setupCustomer(customerName, branch);
+          String initialAmount = console.readLine("Enter the initial amount for new account (if any): ");
+          setupCustomer(customerName, branch, initialAmount);
         }
         else if (option.equals("5") || option.toUpperCase().equals("CLOSE ACCOUNT")){
           System.out.println("---------------------------------------------------------"); 
@@ -393,7 +394,7 @@ public class Part2
       return isValid;
     }
   }
-  public static void setupCustomer(String customerName, String branch){
+  public static void setupCustomer(String customerName, String branch, String initialAmount){
     PreparedStatement pStmt = null; 
     ResultSet rs = null;
     try{
@@ -420,8 +421,13 @@ public class Part2
           ResultSet.CONCUR_READ_ONLY);
 
       rs = pStmt.executeQuery();
-      if (rs.first()){
-        maxCustomerNo = rs.getInt("max_customer_no") + 1;
+      rs.first();
+
+      try{
+        maxCustomerNo = Integer.parseInt(rs.getString("max_customer_no")) + 1;
+      }
+      catch(NumberFormatException e){
+        maxCustomerNo = 0;
       }
 
       rs.close();
@@ -439,9 +445,16 @@ public class Part2
 
       rs.close();
       pStmt.close();
-      //Set up an account for the customer  
-      Boolean isValid = setupAccount(customerName,branch,String.valueOf(0));
-
+      //Set up an account for the customer 
+       
+      Boolean isValid;  
+      if (initialAmount == null){
+        isValid = setupAccount(customerName,branch,String.valueOf(0));
+      }
+      else{
+        isValid = setupAccount(customerName,branch,initialAmount);
+        
+      }
       //If we can't set up an account, we know for sure that the branch is not valid, rollback changes
       if (!isValid){
         System.out.println("Specified branch was not valid. Cannot set up customer's account. No customer was set up");
@@ -451,7 +464,15 @@ public class Part2
       conn.commit();
 
 
-      System.out.println("Customer " + customerName + " was set up with a new customer account (#" + String.format("%05d",maxCustomerNo) + ") with status 0");     
+      pStmt = conn.prepareStatement("select customerNo, name, status from customer where name = ?",
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
+      pStmt.setString(1,customerName);
+      rs = pStmt.executeQuery();
+
+      rs.first();
+
+      System.out.println("Customer " + rs.getString("name") + " was set up with a new customer account (#" + rs.getString("customerNo") + ") with status " + String.format("%d",rs.getInt("status")));     
 
 
     }
@@ -996,13 +1017,14 @@ public class Part2
       rs.close();
       pStmt.close();
 
+
       //Print out the branch number and address, followed by the accounts (and their balances)  associated with this branch 
       System.out.println(" ");
-      System.out.println("|------------------------------------------------- ");
-      System.out.println("|Branch Number : " + String.format("%03d",branchNum));
-      System.out.println("|Branch Address : " + branchAddress);
-      System.out.println("|ACCOUNTS");
-      System.out.println("|--------");
+      System.out.println("+============================================================+ ");
+      System.out.println("Branch Number : " + String.format("%03d",branchNum));
+      System.out.println("Branch Address : " + branchAddress);
+      System.out.println("ACCOUNTS");
+      System.out.println("--------");
 
       pStmt = conn.prepareStatement("select localAccNo, balance from account where branchNo = ? order by localAccNo asc",
           ResultSet.TYPE_SCROLL_INSENSITIVE,
@@ -1012,18 +1034,19 @@ public class Part2
 
       Boolean isEmpty = true;
       while (rs.next()){
-        System.out.println("|Local Account number: " + rs.getString("localAccNo") + "     balance: " + String.format("%.2f",rs.getFloat("balance")));
+        System.out.println("Local Account number: " + rs.getString("localAccNo") + "     balance: " + String.format("%.2f",rs.getFloat("balance")));
 
         totalBalance += rs.getFloat("balance");
         isEmpty = false;
       }
-      
+
       if(isEmpty){
-        System.out.println("|No accounts associated with this branch");
-        
+        System.out.println("No accounts associated with this branch");
+
       }
-      System.out.println("|Total balance: " + String.format("%.2f", totalBalance));
-      System.out.println("|------------------------------------------------- ");
+      System.out.println(" ");
+      System.out.println("Total balance: " + String.format("%.2f", totalBalance));
+      System.out.println("+============================================================+ ");
 
     }
     catch(Exception e){
@@ -1102,8 +1125,8 @@ public class Part2
       }
 
       pStmt = conn.prepareStatement("select customerNo, name, status from customer where customerNo = ?",
-                                    ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                    ResultSet.CONCUR_READ_ONLY);
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
 
       pStmt.setString(1,customerNum);
 
@@ -1112,6 +1135,7 @@ public class Part2
       rs.first();
 
       System.out.println(" ");
+      System.out.println("+============================================================+ ");
       System.out.println("Customer Number: " +  rs.getString("customerNo"));
       System.out.println("Customer Name: " + rs.getString("name"));
       System.out.println("Customer Status: " + rs.getInt("status"));
@@ -1124,8 +1148,8 @@ public class Part2
 
       //Print out the associated accounts if any.
       pStmt = conn.prepareStatement("select branchNo, localAccNo, balance from account where customerNo = ?",
-                                    ResultSet.TYPE_SCROLL_INSENSITIVE,
-                                    ResultSet.CONCUR_READ_ONLY);
+          ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_READ_ONLY);
 
       pStmt.setString(1,customerNum);
       rs = pStmt.executeQuery();
@@ -1144,7 +1168,7 @@ public class Part2
       System.out.println(" ");
 
       System.out.println("Total Balance: " + String.format("%.2f",totalBalance));
-
+      System.out.println("+============================================================+ ");
     }
     catch(Exception e){
       System.out.println("SQL exception: ");

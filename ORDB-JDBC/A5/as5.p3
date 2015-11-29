@@ -1,0 +1,316 @@
+
+
+1. List course names and their prerequisites unnested.
+
+Query: 
+
+select c.name, value(p).name AS prereq_name
+FROM course c, table(c.prereqs) p;
+
+Query results:
+
+NAME       PREREQ_NAM
+---------- ----------
+Comp       Math
+Comp       Chem
+Java       Comp
+OS         Comp
+DBMS       Java
+DBMS       OS
+
+====================================================================================
+
+2. List course names and their prerequisites nested.
+
+
+NOTE: need to create object and nt for prereq with only name column
+
+CREATE TYPE preq_t AS OBJECT(name VARCHAR(20));
+/
+CREATE TYPE preq_nt AS TABLE OF preq_t;
+/
+
+Query:
+
+select c.name, cast(multiset(select distinct value(p).name 
+                             FROM table(c.prereqs) p) AS preq_nt)
+FROM course c;
+
+
+Results: 
+
+NAME
+----------
+CAST(MULTISET(SELECTDISTINCTVALUE(P).NAMEFROMTABLE(C.PREREQS)P)ASPREQ_NT)(NAME)
+--------------------------------------------------------------------------------
+Math
+PREQ_NT()
+
+Chem
+PREQ_NT()
+
+Comp
+PREQ_NT(PREQ_T('Chem'), PREQ_T('Math'))
+
+Java
+PREQ_NT(PREQ_T('Comp'))
+
+OS
+PREQ_NT(PREQ_T('Comp'))
+
+DBMS
+PREQ_NT(PREQ_T('Java'), PREQ_T('OS'))
+
+
+====================================================================================
+
+3. List course names and the number of your prerequisites.
+
+Query:
+
+select c.name, COUNT(*)
+FROM course c , table(c.prereqs) p
+group by c.name;
+
+Results:
+
+NAME       COUNT(*)
+---------- ----------
+Comp        2
+DBMS        2
+Java        1
+OS          1
+
+
+====================================================================================
+
+4. List course names for the courses that has at least two prerequisites.
+
+
+Query:
+
+select c.name
+FROM course c, table(c.prereqs) p
+group by c.name
+having count(*) >= 2;
+
+
+Results:
+
+NAME       
+---------- 
+Comp        
+DBMS        
+
+
+====================================================================================
+
+5. List student names and all courses they take nested.
+
+NOTE: Need to declare objects and corresponding nt for this query
+create type cs_t as object (name varchar2(10));
+/
+create type cs_nt as table of cs_t;
+/
+
+Query:
+
+select s.name, cast(multiset(select distinct value(c).name 
+                             FROM table(s.courses) c) AS cs_nt)
+FROM student s;
+
+Result:
+
+NAME
+--------------------
+CAST(MULTISET(SELECTDISTINCTVALUE(C).NAMEFROMTABLE(S.COURSES)C)ASCS_NT)(NAME)
+--------------------------------------------------------------------------------
+Alan
+CS_NT(CS_T('Chem'), CS_T('Math'))
+
+Beth
+CS_NT()
+
+Cole
+CS_NT(CS_T('Java'))
+
+Dora
+CS_NT(CS_T('Comp'))
+
+Jack
+CS_NT(CS_T('DBMS'), CS_T('Java'))
+
+Lisa
+CS_NT(CS_T('OS'))
+
+Mike
+CS_NT(CS_T('DBMS'))
+
+Sara
+CS_NT(CS_T('OS'))
+
+====================================================================================
+
+6. List course name and all male students nested.
+
+NOTE: Need to declare objects and corresponding nt for this query
+create type stu_t as object(name varchar2(20));
+/
+create type stu_nt as table of stu_t;
+/
+
+Query:
+
+select c.name, cast (multiset(select distinct value(s).name 
+                              FROM table(c.students) s
+                              WHERE value(s).gender = 'M') AS stu_nt)
+FROM course c;
+
+
+Result:
+
+NAME
+----------
+CAST(MULTISET(SELECTDISTINCTVALUE(S).NAMEFROMTABLE(C.STUDENTS)SWHEREVALUE(S).GEN
+--------------------------------------------------------------------------------
+Math
+STU_NT(STU_T('Alan'))
+
+Chem
+STU_NT(STU_T('Alan'))
+
+Comp
+STU_NT()
+
+Java
+STU_NT(STU_T('Cole'), STU_T('Jack'))
+
+OS
+STU_NT()
+
+DBMS
+STU_NT(STU_T('Jack'), STU_T('Mike'))
+
+
+====================================================================================
+
+7. List course names and all grad students nested.
+
+NOTE: using stu_nt as declared in 6
+
+Query:
+
+select c.name, cast (multiset(select value(s).name
+                              FROM table(c.students) s
+                              WHERE EXISTS (select * 
+                                            from student x 
+                                            where value(x) is of (grad_t) 
+                                            and value(s).name = value(x).name)) AS stu_nt)
+from course c;
+
+Result:
+
+NAME
+----------
+CAST(MULTISET(SELECTVALUE(S).NAMEFROMTABLE(C.STUDENTS)SWHEREEXISTS(SELECT*FROMST
+--------------------------------------------------------------------------------
+Math
+STU_NT()
+
+Chem
+STU_NT()
+
+Comp
+STU_NT()
+
+Java
+STU_NT(STU_T('Jack'))
+
+OS
+STU_NT(STU_T('Lisa'), STU_T('Sara'))
+
+DBMS
+STU_NT(STU_T('Jack'), STU_T('Mike'))
+
+
+====================================================================================
+
+8. List course names and all male grad students nested.
+
+NOTE: using stu_nt as declared in 6
+
+Query:
+
+select c.name, cast (multiset(select value(s).name
+                              FROM table(c.students) s
+                              WHERE EXISTS (select * 
+                                            from student x 
+                                            where value(x) is of (grad_t) 
+                                            and value(s).name = value(x).name
+                                            AND value(s).gender = 'M')) AS stu_nt)
+from course c;
+
+
+Results:
+
+NAME
+----------
+CAST(MULTISET(SELECTVALUE(S).NAMEFROMTABLE(C.STUDENTS)SWHEREEXISTS(SELECT*FROMST
+--------------------------------------------------------------------------------
+Math
+STU_NT()
+
+Chem
+STU_NT()
+
+Comp
+STU_NT()
+
+Java
+STU_NT(STU_T('Jack'))
+
+OS
+STU_NT()
+
+DBMS
+STU_NT(STU_T('Jack'), STU_T('Mike'))
+
+
+====================================================================================
+
+9. List the courses that only grad students take
+
+Query:
+
+select DISTINCT c.name
+from course c
+where c.name not in (select distinct value(crs).name
+              FROM student s, table (s.courses) crs
+              WHERE value(s) is of (undergrad_t));
+
+Result:
+
+NAME
+----------
+DBMS
+OS
+
+====================================================================================
+
+10. List the courses that only male grad students take
+
+Query:
+
+select DISTINCT c.name
+from course c, table(c.students) stu
+where c.name not in (select distinct value(crs).name
+              FROM student s, table (s.courses) crs
+              WHERE value(s) is of (undergrad_t))
+AND value(stu).gender = 'M';
+
+
+Result:
+
+NAME
+----------
+DBMS

@@ -1,0 +1,19 @@
+drop table course;
+/
+drop table student;
+/
+
+drop type undergrad_t FORCE;
+/
+drop type grad_t FORCE;
+/
+drop type student_nt FORCE;
+/
+drop type student_t FORCE;
+/
+
+drop type course_nt FORCE;
+/
+drop type course_t FORCE;
+/
+

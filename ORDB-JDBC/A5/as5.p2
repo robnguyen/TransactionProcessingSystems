@@ -1,0 +1,202 @@
+delete from course;
+delete from student;
+
+--Insert courses
+insert into course values (1, 'Math', course_nt(), student_nt());
+insert into course values (2, 'Chem', course_nt(), student_nt());
+insert into course values (3, 'Comp', course_nt(), student_nt());
+insert into course values (4, 'Java', course_nt(), student_nt());
+insert into course values (5, 'OS', course_nt(), student_nt());
+insert into course values (6, 'DBMS', course_nt(), student_nt());
+
+--Set prereqs for courses
+insert into table(select c.prereqs 
+                  FROM course c
+                  WHERE c.name = 'Comp')
+                  select ref(p)
+                  FROM course p
+                  WHERE p.name = 'Math';
+
+insert into table (select c.prereqs
+                   FROM course c
+                   WHERE c.name = 'Comp')
+                   select ref(p)
+                   FROM course p
+                   WHERE p.name = 'Chem';
+
+insert into table (select c.prereqs
+                   FROM course c
+                   WHERE c.name = 'Java')
+                   select ref(p)
+                   FROM course p
+                   WHERE p.name = 'Comp';
+
+insert into table (select c.prereqs
+                   FROM course c
+                   WHERE c.name = 'OS')
+                   select ref(p)
+                   FROM course p
+                   WHERE p.name = 'Comp';
+
+insert into table (select c.prereqs
+                   FROM course c
+                   WHERE c.name = 'DBMS')
+                   select ref(p)
+                   FROM course p
+                   WHERE p.name = 'Java';
+
+insert into table (select c.prereqs
+                   FROM course c
+                   WHERE c.name = 'DBMS')
+                   select ref(p)
+                   FROM course p
+                   WHERE p.name = 'OS';
+
+--Insert Undergrads
+insert into student values(undergrad_t(1,'Alan','M',course_nt(),NULL));
+
+insert into student values(undergrad_t(2,'Beth','F',course_nt(),NULL));
+
+insert into student values (undergrad_t(3,'Cole','M', course_nt(), NULL));
+
+insert into student values (undergrad_t(4, 'Dora','F', course_nt(), NULL));
+
+
+--Insert Grads
+insert into student values (grad_t(5,'Jack','M', course_nt(), NULL));
+
+insert into student values (grad_t(6,'Lisa', 'F', course_nt(), NULL));
+
+insert into student values (grad_t(7, 'Mike', 'M', course_nt(), NULL));
+
+insert into student values (grad_t(8, 'Sara', 'F', course_nt(), NULL));
+
+--Insert undergrad courses taken
+
+
+--Insert Alan taking math course, and math course having alan as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Alan')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'Math';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'Math')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Alan';
+
+--Insert Alan Taking Chem course, and chem course having alan as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Alan')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'Chem';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'Chem')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Alan';
+
+--Insert Dora taking COMP course, and COMP course having Dora as a student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Dora')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'Comp';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'Comp')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Dora';
+
+--Insert Cole taking Java, and Java course having Cole as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Cole')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'Java';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'Java')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Cole';
+
+--Insert Jack taking Java, and Java course having Jack as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Jack')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'Java';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'Java')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Jack';
+
+--Insert Lisa taking OS, and OS course having Lisa as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Lisa')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'OS';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'OS')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Lisa';
+
+--Insert Sara taking OS, and OS course having Sara as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Sara')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'OS';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'OS')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Sara';
+
+--Insert Jack taking DBMS, and DBMS course having Jack as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Jack')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'DBMS';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'DBMS')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Jack';
+
+--Insert Mike taking DBMS, and DBMS course having Mike as student
+insert into table (select s.courses 
+                   FROM student s
+                   WHERE s.name = 'Mike')
+                   select ref(c)
+                   FROM course c
+                   WHERE c.name = 'DBMS';
+insert into table (select c.students
+                   FROM course c
+                   WHERE c.name = 'DBMS')
+                   select ref(s)
+                   FROM student s
+                   WHERE s.name = 'Mike';
+commit;

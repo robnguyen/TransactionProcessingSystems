@@ -1,0 +1,54 @@
+create or replace type course_t;
+
+/
+
+create or replace type course_nt as table of ref course_t;
+/
+
+create or replace type student_t as object(
+	s# int,
+	name varchar2(20),
+	gender varchar2(1),
+	courses course_nt
+) NOT FINAL;
+
+/
+
+create or replace type undergrad_t under student_t(
+	phone# varchar2(15)
+);
+
+/
+
+create or replace type grad_t under student_t(
+	phone# varchar2(15)
+);
+/
+
+create or replace type student_nt as table of ref student_t;
+/
+
+create or replace type course_t as object(
+	c# int,
+	name varchar2(25), 
+	prereqs course_nt,
+	students student_nt
+);
+
+/
+
+create table student of student_t(
+	s# PRIMARY KEY,
+	UNIQUE (name),
+	CHECK (gender in ('M','F'))
+) 
+	nested table courses store as courses_tb;
+/
+
+create table course of course_t(
+	c# PRIMARY KEY,
+	UNIQUE(name)
+)
+	nested table prereqs store as prereqs_tb
+	nested table students store as students_tb;
+/

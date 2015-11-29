@@ -1,0 +1,79 @@
+Script started on Fri 27 Nov 2015 09:19:23 AM UTC
+]0;fedora@COMP4003:~/A5[?1034h[fedora@COMP4003 A5]$ java Part4Test
+Connecting to JDBC...
+JDBC connected.
+
+====================
+Begin testing
+Test cases for insert_course
+----------------------------
+Test case 1: Inserting an empty string for a course
+You must enter a course name
+Test case 2: Inserting a course that already exists in DB
+A course with the same name already exists, not inserting
+Test case 3: Inserting a course regular
+Course named History created with course number 7
+====================
+Test cases for delete_course
+----------------------------
+Test case 1: Deleting an emptys string name for a course
+You must enter a course name
+Test case 2: Deleting a course that still has students in it
+There are students still in this course. Cannot delete this course
+Test Case 3: Deleting a course that has no students in it
+Course named History has been deleted.
+====================
+Test cases for insert_student
+----------------------------
+Test case 1: Inserting a student with an empty string for a name
+Please enter the student's name
+test case 2: Inserting a student that already exists in the DB
+Student with this name already exists. Not inserting
+Test case 3: inserting a student that doesn't exist in DB
+Inserted new undergrad student named Cordelia with student number 9
+====================
+Test cases for delete_student
+----------------------------
+Test case 1: Trying to delete a student with no name specified
+Please enter a student name
+Test case 2: Trying to delete a student who has courses being taken
+Student is still taking courses. Cannot delete student
+Test case 3: Trying to delete a student with no courses taken
+Deleted student named Cordelia
+====================
+Test cases for take_course
+----------------------------
+Test case 1: Trying to take a course for a student who doesn't exist in DB
+Specified student by name does not exist
+Test case 2: Trying to take a course for a student where the course doesn't exist in DB
+Specified course by name does not exist
+Test case 3: Trying to take a course for a student where the course is already being taken by the student
+This student is already taking this course, cannot take this course again
+Test case 4: Taking a course for a student who isn't taking it
+Added student named Mike into course OS
+====================
+Test cases for drop_course
+----------------------------
+Test case 1: Trying to drop a course for a student who doesn't exist in DB
+Student with specified name does not exist
+Test case 2: trying to drop a course for a student where the student isn't taking the course
+Student is not taking this course specified, not dropping any courses
+Test case 3: Dropping a course that the student is taking
+Dropping student named Mike from course named OS
+====================
+Test cases for add_prerequisite
+----------------------------
+Test case 1: Adding a prerequisite which doesn't exist in DB
+Prerequisite course does not exist. Can't add prerequisite.
+test case 2: Adding a prerequisite, where the prerequisite has the course as a prereq, circular prereq
+Prerequisite course (A) has course (B) as a prerequisite. Cannot have this circular prereq logic
+Test case 3: Adding a prerequisite, which is already a prerequisite for the course
+Course A is already a prerequisite of the target course B. Not adding this prerequisite again
+Test case 4: Adding a prerequisite
+Made course named Math a prerequisite for course named DBMS
+====================
+ END OF TESTING 
+----------------------------
+]0;fedora@COMP4003:~/A5[fedora@COMP4003 A5]$ exit
+
+Script done on Fri 27 Nov 2015 09:19:31 AM UTC

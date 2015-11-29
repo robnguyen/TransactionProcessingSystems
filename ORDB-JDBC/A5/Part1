@@ -1,0 +1,58 @@
+Script started on Fri 27 Nov 2015 08:18:02 AM UTC
+]0;fedora@COMP4003:~/A5[?1034h[fedora@COMP4003 A5]$ sqlplus
+
+SQL*Plus: Release 11.2.0.2.0 Production on Fri Nov 27 08:18:05 2015
+
+Copyright (c) 1982, 2011, Oracle.  All rights reserved.
+
+Enter user-name: oracle
+Enter password: 
+
+Connected to:
+Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+
+SQL> @as5.p1
+
+Type created.
+
+
+Type created.
+
+
+Type created.
+
+
+Type created.
+
+
+Type created.
+
+
+Type created.
+
+
+Type created.
+
+
+Table created.
+
+create table student of student_t(
+             *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object
+
+
+
+Table created.
+
+create table course of course_t(
+             *
+ERROR at line 1:
+ORA-00955: name is already used by an existing object
+
+
+SQL> exit
+Disconnected from Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production
+]0;fedora@COMP4003:~/A5[fedora@COMP4003 A5]$ exit
+
+Script done on Fri 27 Nov 2015 08:18:22 AM UTC
